@@ -9,14 +9,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
-# Ищем только твой Main.cpp и другие файлы строго в корне/рядом, без мусора из NDK
-file(GLOB SRC_FILES "*.cpp")
+# Автоматически ищем все .cpp файлы во всех папках проекта
+file(GLOB_RECURSE SRC_FILES *.cpp)
 
-add_library(mycheat SHARED ${SRC_FILES} Main.cpp)
+add_library(mycheat SHARED ${SRC_FILES})
 
 target_include_directories(mycheat PRIVATE 
-    ${imgui_SOURCE_DIR} 
+    ${imgui_SOURCE_DIR}
+    app/src/main/jni/Main
 )
 
-# Подключаем стандартные библиотеки Android NDK, чтобы ушли ошибки glue.h
-target_link_libraries(mycheat android log android_support)
+target_link_libraries(mycheat android log)
