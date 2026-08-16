@@ -9,12 +9,13 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
-# Указываем точный путь к твоему файлу с большой буквы
-add_library(mycheat SHARED app/src/main/jni/Main/Main.cpp)
+# Автоматически ищем любой .cpp файл в репозитории
+file(GLOB_RECURSE SRC_FILES *.cpp)
+
+add_library(mycheat SHARED ${SRC_FILES})
 
 target_include_directories(mycheat PRIVATE 
     ${imgui_SOURCE_DIR} 
-    app/src/main/jni/Main/
 )
 
 target_link_libraries(mycheat android log)
