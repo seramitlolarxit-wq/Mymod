@@ -9,14 +9,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
-# Автоматически ищем все .cpp файлы во всех папках проекта
-file(GLOB_RECURSE SRC_FILES *.cpp)
-
-add_library(mycheat SHARED ${SRC_FILES})
+# Файлы main.cpp и Offsets.h лежат прямо здесь, в корне
+add_library(mycheat SHARED main.cpp)
 
 target_include_directories(mycheat PRIVATE 
     ${imgui_SOURCE_DIR}
-    app/src/main/jni/Main
 )
 
 target_link_libraries(mycheat android log)
