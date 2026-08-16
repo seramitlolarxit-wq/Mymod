@@ -9,8 +9,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(imgui)
 
-# Файлы main.cpp и Offsets.h лежат прямо здесь, в корне
-add_library(mycheat SHARED main.cpp)
+# Собираем библиотеку из твоего кода и всех необходимых файлов ImGui
+add_library(mycheat SHARED 
+    main.cpp
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_demo.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+)
 
 target_include_directories(mycheat PRIVATE 
     ${imgui_SOURCE_DIR}
