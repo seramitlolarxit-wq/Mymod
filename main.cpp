@@ -1,119 +1,119 @@
 #include <jni.h>
 #include <string>
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "Offsets.h" // Исправлено на большую букву
+#include <android/log.h>
+#include <unistd.h>
+#include <dlfcn.h>
+#include "ImGui/imgui.h"
+#include "Offsets.h" // Подключаем наш файл с офсетами
 
-// ============================================================================
-// ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ НАСТРОЕК
-// ============================================================================
+#define LOG_TAG "StandoffCheat"
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
 
-float g_MenuScale = 1.0f;
-float g_LastAppliedScale = 1.0f;
-bool g_HideFromScreenshots = false;
+// Структура настроек меню
+struct CheatSettings {
+    bool espBox = false;
+    bool espHealth = false;
+    bool chamsMap = false; 
 
-bool g_EspEnabled = false;
-bool g_EspBox = true;
-bool g_EspLine = false;
-bool g_EspDistance = true;
-bool g_EspHealth = true;
+    bool silentAimEnable = false;
+    bool fovCircleEnable = true;
+    float fovSize = 100.0f; 
 
-bool g_AimbotEnabled = false;
-int g_AimType = 0; 
-int g_SelectedAimTarget = 0; 
-const char* g_AimTargets[] = { "Голова (Head)", "Шея (Neck)", "Тело (Chest)" };
-float g_AimbotFov = 60.0f;
-float g_AimbotSmooth = 5.0f;
-bool g_WallCheck = true;
-bool g_AimOnShoot = false;
+    bool hitboxesResize = false;
+    float hitboxScale = 1.5f; 
+    bool noRecoil = false;
+    bool antiAimSpin = false;   
+    bool antiAimJump = false;   
+    bool bunnyHop = false;
+    float bhopSpeed = 1.0f;     
+};
 
-bool g_NoRecoil = false;
-bool g_OneHitKill = false;
-bool g_KillAura360 = false;
-bool g_AntiBanProtect = true;
-bool g_BypassCrashes = true;
+CheatSettings g_Cfg;
+bool showMenu = true; 
 
-// ============================================================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ============================================================================
-
-void ApplyMenuScale(float newScale) {
-    ImGuiStyle& style = ImGui::GetStyle();
-    style = ImGuiStyle();
-    ImGui::StyleColorsDark();
-    style.ScaleAllSizes(newScale);
-    ImGui::GetIO().FontGlobalScale = newScale;
-    g_LastAppliedScale = newScale;
+// Хуки с использованием офсетов из Offsets.h
+bool hook_ValidateHit(void* hitController, void* shooter, void* victim) {
+    return true; 
 }
 
-void SetWindowSecureFlag(JNIEnv* env, jobject context, bool enable) {
-    if (!env || !context) return;
+bool hook_ValidateElapsedMs(int16_t elapsedMs) {
+    return true;
 }
 
-// ============================================================================
-// ГЛАВНАЯ ФУНКЦИЯ ОТРИСОВКИ МЕНЮ
-// ============================================================================
+void hook_FoxOnHit(void* fox, void* hitEventArgs) {
+    return;
+}
 
-void RenderCheatMenu(JNIEnv* env, jobject context) {
-    if (g_MenuScale != g_LastAppliedScale) {
-        ApplyMenuScale(g_MenuScale);
-    }
+// Отрисовка ImGui меню
+void RenderImGuiMenu() {
+    if (!showMenu) return;
 
-    ImGui::SetNextWindowSize(ImVec2(500 * g_MenuScale, 430 * g_MenuScale), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Ultimate Cheat Menu", nullptr, ImGuiWindowFlags_NoCollapse);
+    ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
+    ImGui::Begin("Standoff 2 - Menu", &showMenu, ImGuiWindowFlags_NoCollapse);
 
-    if (ImGui::BeginTabBar("MainTabBar")) {
-
+    if (ImGui::BeginTabBar("CheatTabs")) {
+        
         if (ImGui::BeginTabItem("ESP")) {
-            ImGui::Spacing();
-            ImGui::Checkbox("Включить ESP", &g_EspEnabled);
-            if (g_EspEnabled) {
-                ImGui::Separator();
-                ImGui::Checkbox("Боксы (Boxes)", &g_EspBox);
-                ImGui::Checkbox("Линии (Lines)", &g_EspLine);
-                ImGui::Checkbox("Дистанция (Distance)", &g_EspDistance);
-                ImGui::Checkbox("Здоровье (Health Bar)", &g_EspHealth);
-            }
+            ImGui::Checkbox("ESP Box", &g_Cfg.espBox);
+            ImGui::Checkbox("ESP HP", &g_Cfg.espHealth);
+            ImGui::Checkbox("Chams", &g_Cfg.chamsMap);
             ImGui::EndTabItem();
         }
 
-        if (ImGui::BeginTabItem("Aim")) {
-            ImGui::Spacing();
-            ImGui::Checkbox("Включить Aim", &g_AimbotEnabled);
-            if (g_AimbotEnabled) {
-                ImGui::Separator();
-                const char* aimTypes[] = { "Memory Aim (Обычный)", "Silent Aim (Скрытый)" };
-                ImGui::Combo("Тип Аима", &g_AimType, aimTypes, IM_ARRAYSIZE(aimTypes));
-                ImGui::Combo("Цель", &g_SelectedAimTarget, g_AimTargets, IM_ARRAYSIZE(g_AimTargets));
-                ImGui::SliderFloat("Радиус (FOV)", &g_AimbotFov, 10.0f, 180.0f, "%.1f deg");
-                ImGui::SliderFloat("Плавность", &g_AimbotSmooth, 1.0f, 20.0f, "%.1f");
-                ImGui::Spacing();
-                ImGui::Separator();
-                ImGui::Checkbox("WallCheck", &g_WallCheck);
-                ImGui::Checkbox("Aim on Shoot", &g_AimOnShoot);
+        if (ImGui::BeginTabItem("Silent Aim")) {
+            ImGui::Checkbox("Включить Silent Aim", &g_Cfg.silentAimEnable);
+            ImGui::Separator();
+            ImGui::Checkbox("Круг FOV", &g_Cfg.fovCircleEnable);
+            if (g_Cfg.fovCircleEnable) {
+                ImGui::SliderFloat("Размер круга", &g_Cfg.fovSize, 30.0f, 300.0f, "%.1f");
             }
             ImGui::EndTabItem();
         }
 
         if (ImGui::BeginTabItem("Разное")) {
-            ImGui::Spacing();
-            ImGui::Checkbox("Антиотдача", &g_NoRecoil);
-            ImGui::Checkbox("One Hit Kill", &g_OneHitKill);
-            ImGui::Checkbox("Kill Aura 360", &g_KillAura360);
-            ImGui::Separator();
-            ImGui::Checkbox("Антибан", &g_AntiBanProtect);
-            ImGui::Checkbox("Защита от крашей", &g_BypassCrashes);
-            ImGui::EndTabItem();
-        }
-
-        if (ImGui::BeginTabItem("Настройки")) {
-            if (ImGui::Checkbox("FLAG_SECURE", &g_HideFromScreenshots)) {
-                SetWindowSecureFlag(env, context, g_HideFromScreenshots);
+            ImGui::Checkbox("Увеличение хитбоксов", &g_Cfg.hitboxesResize);
+            if (g_Cfg.hitboxesResize) {
+                ImGui::SliderFloat("Размер", &g_Cfg.hitboxScale, 1.0f, 3.0f, "%.1f x");
             }
+            
+            ImGui::Separator();
+            ImGui::Checkbox("Анти-отдача", &g_Cfg.noRecoil);
+            ImGui::Checkbox("Антиаим: Спин", &g_Cfg.antiAimSpin);
+            ImGui::Checkbox("Баннихоп", &g_Cfg.bunnyHop);
+            
             ImGui::EndTabItem();
         }
 
         ImGui::EndTabBar();
     }
+
     ImGui::End();
+
+    if (g_Cfg.silentAimEnable && g_Cfg.fovCircleEnable) {
+        ImVec2 center = ImVec2(ImGui::GetIO().DisplaySize.x * 0.5f, ImGui::GetIO().DisplaySize.y * 0.5f);
+        ImGui::GetBackgroundDrawList()->AddCircle(center, g_Cfg.fovSize, IM_COL32(255, 0, 0, 200), 64, 1.5f);
+    }
+}
+
+void* MainThread(void*) {
+    LOGI("Cheat library loaded successfully!");
+
+    uintptr_t libBase = 0;
+    while (!libBase) {
+        libBase = (uintptr_t)dlopen("libil2cpp.so", RTLD_NOLOAD);
+        usleep(1000000);
+    }
+    LOGI("libil2cpp.so found at: %p", (void*)libBase);
+
+    // Пример обращения к офсетам:
+    // uintptr_t targetValidateHit = libBase + Offsets::ValidateHit;
+    // uintptr_t targetFoxInit = libBase + Offsets::FoxInit;
+
+    return nullptr;
+}
+
+JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, void* reserved) {
+    pthread_t thread;
+    pthread_create(&thread, nullptr, MainThread, nullptr);
+    return JNI_VERSION_1_6;
 }
