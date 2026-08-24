@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include "imgui.h"
-#include "Offsets.h" // Подключаем наш файл с офсетами
+#include "Offsets.h"
 
 #define LOG_TAG "StandoffCheat"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, LOG_TAG, __VA_ARGS__)
@@ -31,17 +31,40 @@ struct CheatSettings {
 CheatSettings g_Cfg;
 bool showMenu = true; 
 
-// Хуки с использованием офсетов из Offsets.h
-bool hook_ValidateHit(void* hitController, void* shooter, void* victim) {
-    return true; 
-}
-
-bool hook_ValidateElapsedMs(int16_t elapsedMs) {
-    return true;
+// ==========================================
+// ФУНКЦИИ ОБХОДА АНТИЧИТА И ВАЛИДАЦИИ
+// ==========================================
+void* hook_FoxInit(void* fox, void* validatorX, void* validatorY, void* resetFun) {
+    LOGI("FoxInit hooked! Bypassing mouse validation...");
+    return nullptr; 
 }
 
 void hook_FoxOnHit(void* fox, void* hitEventArgs) {
-    return;
+    return; // Блокируем проверки хитов античитом
+}
+
+bool hook_ValidateHit(void* hitController, void* shooter, void* victim) {
+    return true; // Всегда легитимное попадание для Silent Aim
+}
+
+bool hook_ValidateElapsedMs(int16_t shooterElapsedMs) {
+    return true; // Обход спидхака по времени
+}
+
+bool hook_ValidateShooter(void* shooter, int32_t shooterViewId, void* playerController, bool isGrenade) {
+    return true;
+}
+
+bool hook_ValidateShooterByController(void* hitController, void* shooter, int32_t shooterPacketId, void* playerController) {
+    return true;
+}
+
+bool hook_ValidateVector3(void* value) {
+    return true;
+}
+
+bool hook_ValidateFloat(float value) {
+    return true;
 }
 
 // Отрисовка ImGui меню
@@ -49,7 +72,7 @@ void RenderImGuiMenu() {
     if (!showMenu) return;
 
     ImGui::SetNextWindowSize(ImVec2(450, 320), ImGuiCond_FirstUseEver);
-    ImGui::Begin("Standoff 2 - Menu", &showMenu, ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Standleo - Menu", &showMenu, ImGuiWindowFlags_NoCollapse);
 
     if (ImGui::BeginTabBar("CheatTabs")) {
         
@@ -105,9 +128,13 @@ void* MainThread(void*) {
     }
     LOGI("libil2cpp.so found at: %p", (void*)libBase);
 
-    // Пример обращения к офсетам:
-    // uintptr_t targetValidateHit = libBase + Offsets::ValidateHit;
-    // uintptr_t targetFoxInit = libBase + Offsets::FoxInit;
+    // Пример вызова хуков с использованием Offsets:
+    // DobbyHook((void*)(libBase + Offsets::FoxInit), (void*)hook_FoxInit, nullptr);
+    // DobbyHook((void*)(libBase + Offsets::FoxOnHit), (void*)hook_FoxOnHit, nullptr);
+    // DobbyHook((void*)(libBase + Offsets::ValidateHit), (void*)hook_ValidateHit, nullptr);
+    // DobbyHook((void*)(libBase + Offsets::ValidateElapsedMs), (void*)hook_ValidateElapsedMs, nullptr);
+    // DobbyHook((void*)(libBase + Offsets::ValidateVector3), (void*)hook_ValidateVector3, nullptr);
+    // DobbyHook((void*)(libBase + Offsets::ValidateFloat), (void*)hook_ValidateFloat, nullptr);
 
     return nullptr;
 }
