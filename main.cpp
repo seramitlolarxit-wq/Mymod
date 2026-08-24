@@ -3,7 +3,7 @@
 #include <android/log.h>
 #include <unistd.h>
 #include <dlfcn.h>
-#include "ImGui/imgui.h"
+#include "imgui.h"
 #include "Offsets.h" // Подключаем наш файл с офсетами
 
 #define LOG_TAG "StandoffCheat"
